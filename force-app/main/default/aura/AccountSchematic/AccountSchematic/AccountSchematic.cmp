@@ -1,0 +1,319 @@
+<!--
+  Account Schematic Engine
+
+  Multi-layer filtering system:
+  Account → Deposit → Treasury → Product → Status
+
+  Features:
+  - Dynamic filtering
+  - Real-time UI sync
+  - Duplicate + selected state handling
+-->
+<aura:component controller="TS_LightningAccountSchematicController"
+implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,force:lightningQuickAction"
+access="global">
+
+<aura:attribute name="isAnyFilterActive" type="Boolean" default="false"/>
+<aura:attribute name="recordId" type="Id" />
+<aura:attribute name="AccountId" type="String" />
+<aura:attribute name="checkbox" type="String" default="CheckboxColumn" />
+<aura:attribute name="parent" type="Aura.Component" />
+<aura:attribute name="DepositExpansion" type="Boolean" default="false" />
+<aura:attribute name="AccountExpansion" type="Boolean" default="false" />
+<aura:attribute name="treasuryAccountExpansion" type="Boolean" default="false" />
+<aura:attribute name="ProductExpansion" type="Boolean" default="false" />
+<aura:attribute name="TreasuryServiceExpansion" type="Boolean" default="false" />
+<aura:attribute name="TreasuryStatusExpansion" type="Boolean" default="false" />
+<aura:attribute name="AccountSearchValue" type="String" />
+<aura:attribute name="TreasuryAccountSearchValue" type="String" />
+<aura:attribute name="DepositSearchValue" type="String" />
+<aura:attribute name="TreasurySearchValue" type="String" />
+<aura:attribute name="StatusSearchValue" type="String" />
+<aura:attribute name="ProductSearchValue" type="String" />
+<aura:attribute name="Accountcolumns" type="List" />
+<aura:attribute name="AccountData" type="List" />
+<aura:attribute name="selectedAccIds" type="List" />
+<aura:attribute name="allAccIds" type="List" />
+<aura:attribute name="TreasuryAccountcolumns" type="List" />
+<aura:attribute name="TreasuryAccountData" type="List" />
+<aura:attribute name="selectedTreasuryAccIds" type="List" />
+<aura:attribute name="allTreasuryAccIds" type="List" />
+<aura:attribute name="DepositColumns" type="List" />
+<aura:attribute name="DepositData" type="List" />
+<aura:attribute name="selectedDepositIds" type="List" />
+<aura:attribute name="allDepositIds" type="List" />
+<aura:attribute name="TreasuryCoumns" type="List" />
+<aura:attribute name="treasuryData" type="List" />
+<aura:attribute name="treasurySelectedIds" type="List" />
+<aura:attribute name="allTreasuryIds" type="List" />
+<aura:attribute name="StatusColumns" type="List" />
+<aura:attribute name="StatusData" type="List" />
+<aura:attribute name="selectedStatus" type="List" />
+<aura:attribute name="allStatus" type="List" />
+<aura:attribute name="ProductColumns" type="List" />
+<aura:attribute name="ProductData" type="List" />
+<aura:attribute name="SelectedProducts" type="List" />
+<aura:attribute name="allProductIds" type="List" />
+<aura:attribute name="EventType" type="String" />
+<aura:attribute name="AccountDataDuplicate" type="List" />
+<aura:attribute name="TreasuryAccountDataDuplicate" type="List" />
+<aura:attribute name="DepositDataDuplicate" type="List" />
+<aura:attribute name="treasuryDataDuplicate" type="List" />
+<aura:attribute name="StatusDataDuplicate" type="List" />
+<aura:attribute name="ProductDataDuplicate" type="List" />
+<aura:attribute name="selectedAccIdsDuplicate" type="List" />
+<aura:attribute name="selectedTreasuryAccIdsDuplicate" type="List" />
+<aura:attribute name="selectedDepositIdsDuplicate" type="List" />
+<aura:attribute name="treasurySelectedIdsDuplicate" type="List" />
+<aura:attribute name="selectedStatusDuplicate" type="List" />
+<aura:attribute name="SelectedProductsDuplicate" type="List" />
+<aura:attribute name="filterString" type="String" default="" />
+<aura:attribute name="DepositfilterString" type="String" default="" />
+<aura:attribute name="findAccountFilter" type="Boolean" default="false" />
+<aura:attribute name="findDepositFilter" type="Boolean" default="false" />
+<aura:attribute name="findtreasuryAccFilter" type="Boolean" default="false" />
+<aura:attribute name="findtreasuryFilter" type="Boolean" default="false" />
+<aura:attribute name="findtreasuryStatusFilter" type="Boolean" default="false" />
+<aura:attribute name="findtreasuryProductFilter" type="Boolean" default="false" />
+<aura:attribute name="DepositStatusExpansion" type="Boolean" default="false" />
+<aura:attribute name="findDepositStatusFilter" type="Boolean" default="false" />
+<aura:attribute name="DepositStatusSearchValue" type="String" default="" />
+<aura:attribute name="DepositStatusData" type="List" />
+<aura:attribute name="DepositStatusDuplicateData" type="List" />
+<aura:attribute name="DepositStatusColumns" type="List" />
+<aura:attribute name="selectedDepositStatusIds" type="List" />
+<aura:attribute name="selectedDepositStatusIdsDup" type="List" />
+<aura:attribute name="allDepositStatusValues" type="List" />
+
+<aura:attribute name="items" type="List" default="[
+            {
+                label: 'Clear Filter ',
+                name: 'ClearFilter'
+                                                  }]" />
+<aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+
+     <aura:renderIf isTrue="{!v.isAnyFilterActive}">
+    <lightning:button label="Clear All"
+                      onclick="{!c.clearAllFilters}"
+                      class="slds-m-left_x-small"/>
+</aura:renderIf>
+
+
+
+<div class="slds-modal__header">        
+    <h4 class="title slds-text-heading--medium">Refine By</h4>
+</div>
+
+<lightning:card title=" Deposit Account Title (Relationship)" class="heading">
+    <aura:set attribute="actions">
+        <aura:if isTrue="{!v.AccountExpansion}">
+            <lightning:buttonIcon iconName="utility:dash" variant="bare" class="slds-button__icon_large"
+                onclick="{! c.CollapseAccount }" />
+            <aura:set attribute="else">
+                <lightning:buttonIcon iconName="utility:add" variant="bare" class="slds-button__icon_large"
+                    onclick="{! c.ExpandAccount }" />
+            </aura:set>
+        </aura:if>
+    </aura:set>
+    <aura:if isTrue="{!v.AccountExpansion}">
+        <!--<aura:if isTrue="{!v.findAccountFilter}">
+            <lightning:button label="X Clear all" variant="base" onclick="{!c.clearAccountSelection}" />
+        </aura:if>-->
+        <aura:if isTrue="{!v.findAccountFilter}">
+
+            <lightning:pillContainer items="{!v.items}" onitemremove="{!c.clearAccountSelection}">
+            </lightning:pillContainer>
+
+        </aura:if>
+        <lightning:input name="Deposit Account Search" type="search" value="{!v.AccountSearchValue}"
+            placeholder="Search Deposit Account" onchange="{!c.AccSearchValChanged}" />
+        <div style="height: 200px">
+            <lightning:datatable data="{! v.AccountData }" columns="{! v.Accountcolumns }" keyField="Id"
+                hideTableHeader="true" sortedBy="Checkbox" sortedDirection="asc"
+                onrowselection="{!c.AccSelectionChange }" selectedRows="{!v.selectedAccIds}" />
+        </div>
+    </aura:if>
+</lightning:card>
+
+<lightning:card title="Deposit Account Number" class="heading">
+    <aura:set attribute="actions">
+        <aura:if isTrue="{!v.DepositExpansion}">
+            <lightning:buttonIcon iconName="utility:dash" variant="bare" class="slds-button__icon_large"
+                onclick="{! c.collapseDeposit }" />
+            <aura:set attribute="else">
+                <lightning:buttonIcon iconName="utility:add" variant="bare" class="slds-button__icon_large"
+                    onclick="{! c.ExpandDeposit }" />
+            </aura:set>
+        </aura:if>
+    </aura:set>
+    <aura:if isTrue="{!v.DepositExpansion}">
+        <aura:if isTrue="{!v.findDepositFilter}">
+            <lightning:pillContainer items="{!v.items}" onitemremove="{!c.clearDepositAccountSelection}">
+            </lightning:pillContainer>
+        </aura:if>
+        <lightning:input name="Deposit Search" type="search" value="{!v.DepositSearchValue}"
+            placeholder="Search Deposit" onchange="{!c.DepositSearchValChanged}" />
+        <div style="height: 200px">
+            <lightning:datatable data="{! v.DepositData }" columns="{! v.DepositColumns }" keyField="Id"
+                hideTableHeader="true" onrowselection="{!c.DepositSelectionChange }"
+                selectedRows="{!v.selectedDepositIds}" />
+        </div>
+    </aura:if>
+</lightning:card>
+
+<lightning:card title="Deposit Status" class="heading">
+    <aura:set attribute="actions">
+        <aura:if isTrue="{!v.DepositStatusExpansion}">
+            <lightning:buttonIcon iconName="utility:dash" variant="bare" class="slds-button__icon_large"
+                onclick="{! c.collapseDepositStatus }" />
+            <aura:set attribute="else">
+                <lightning:buttonIcon iconName="utility:add" variant="bare" class="slds-button__icon_large"
+                    onclick="{! c.ExpandDepositStatus }" />
+            </aura:set>
+        </aura:if>
+    </aura:set>
+    <aura:if isTrue="{!v.DepositStatusExpansion}">
+        <aura:if isTrue="{!v.findDepositStatusFilter}">
+            <lightning:pillContainer items="{!v.items}" onitemremove="{!c.clearDepositStatusSelection}">
+            </lightning:pillContainer>
+        </aura:if>
+        <lightning:input name="Deposit Status Search" type="search" value="{!v.DepositStatusSearchValue}"
+            placeholder="Search Deposit Status" onchange="{!c.DepositStatusSearchValChanged}" />
+        <div style="height: 100px">
+            <lightning:datatable data="{! v.DepositStatusData }" columns="{! v.DepositStatusColumns }" keyField="Id"
+                hideTableHeader="true" onrowselection="{!c.DepositStatusSelectionChange }"
+                selectedRows="{!v.selectedDepositStatusIds}" />
+        </div>
+    </aura:if>
+</lightning:card>
+
+<lightning:card title="Treasury Account (Relationship)" class="heading">
+    <aura:set attribute="actions">
+        <aura:if isTrue="{!v.treasuryAccountExpansion}">
+            <lightning:buttonIcon iconName="utility:dash" variant="bare" class="slds-button__icon_large"
+                onclick="{! c.CollapseTreasuryAccount }" />
+            <aura:set attribute="else">
+                <lightning:buttonIcon iconName="utility:add" variant="bare" class="slds-button__icon_large"
+                    onclick="{! c.ExpandTreasuryAccount }" />
+            </aura:set>
+        </aura:if>
+    </aura:set>
+    <aura:if isTrue="{!v.treasuryAccountExpansion}">
+        <aura:if isTrue="{!v.findtreasuryAccFilter}">
+            <lightning:pillContainer items="{!v.items}" onitemremove="{!c.clearTreasuryAccountSelection}">
+            </lightning:pillContainer>
+        </aura:if>
+        <lightning:input name="Account Search" type="search" value="{!v.TreasuryAccountSearchValue}"
+            placeholder="Search Account" onchange="{!c.TreasuryAccSearchValChanged}" />
+        <div style="height: 200px">
+            <lightning:datatable data="{! v.TreasuryAccountData }" columns="{! v.TreasuryAccountcolumns }"
+                keyField="Id" hideTableHeader="true" onrowselection="{!c.TreasuryAccSelectionChange }"
+                selectedRows="{!v.selectedTreasuryAccIds}" />
+        </div>
+    </aura:if>
+</lightning:card>
+
+<lightning:card title="Treasury Service" class="heading">
+    <aura:set attribute="actions">
+        <aura:if isTrue="{!v.TreasuryServiceExpansion}">
+            <lightning:buttonIcon iconName="utility:dash" variant="bare" class="slds-button__icon_large"
+                onclick="{! c.CollapseTreasuryService }" />
+            <aura:set attribute="else">
+                <lightning:buttonIcon iconName="utility:add" variant="bare" class="slds-button__icon_large"
+                    onclick="{! c.ExpandTreasuryService }" />
+            </aura:set>
+        </aura:if>
+    </aura:set>
+    <aura:if isTrue="{!v.TreasuryServiceExpansion}">
+        <aura:if isTrue="{!v.findtreasuryFilter}">
+            <lightning:pillContainer items="{!v.items}" onitemremove="{!c.clearTreasurySelection}">
+            </lightning:pillContainer>
+        </aura:if>
+        <lightning:input name="Treasury Service Search" type="search" value="{!v.TreasurySearchValue}"
+            placeholder="Search Treasury" onchange="{!c.TreasurySearchValChanged}" />
+        <div style="height: 200px">
+            <lightning:datatable data="{! v.treasuryData }" columns="{! v.TreasuryCoumns }" keyField="Id"
+                hideTableHeader="true" onrowselection="{!c.TreasurySelectionChange }"
+                selectedRows="{!v.treasurySelectedIds}" />
+        </div>
+
+    </aura:if>
+</lightning:card>
+<lightning:card title="Treasury Status" class="heading">
+    <aura:set attribute="actions">
+        <aura:if isTrue="{!v.TreasuryStatusExpansion}">
+            <lightning:buttonIcon iconName="utility:dash" variant="bare" class="slds-button__icon_large"
+                onclick="{! c.CollapseTreasuryStatus }" />
+            <aura:set attribute="else">
+                <lightning:buttonIcon iconName="utility:add" variant="bare" class="slds-button__icon_large"
+                    onclick="{! c.ExpandTreasuryStatus }" />
+            </aura:set>
+        </aura:if>
+    </aura:set>
+    <aura:if isTrue="{!v.TreasuryStatusExpansion}">
+        <aura:if isTrue="{!v.findtreasuryStatusFilter}">
+            <lightning:pillContainer items="{!v.items}" onitemremove="{!c.clearTreasuryStatusSelection}">
+            </lightning:pillContainer>
+        </aura:if>
+        <lightning:input name="Treasury Status Search" type="search" value="{!v.StatusSearchValue}"
+            placeholder="Search Status" onchange="{!c.StatusSearchValChanged}" />
+        <div style="height: 100px">
+            <lightning:datatable data="{! v.StatusData }" columns="{! v.StatusColumns }" keyField="Id"
+                hideTableHeader="true" onrowselection="{!c.StatusSelectionChange }"
+                selectedRows="{!v.selectedStatus}" />
+        </div>
+    </aura:if>
+</lightning:card>
+<lightning:card title="Product" class="heading">
+    <aura:set attribute="actions">
+        <aura:if isTrue="{!v.ProductExpansion}">
+            <lightning:buttonIcon iconName="utility:dash" variant="bare" class="slds-button__icon_large"
+                onclick="{! c.CollapseProduct }" />
+            <aura:set attribute="else">
+                <lightning:buttonIcon iconName="utility:add" variant="bare" class="slds-button__icon_large"
+                    onclick="{! c.ExpandProduct }" />
+            </aura:set>
+        </aura:if>
+    </aura:set>
+    <aura:if isTrue="{!v.ProductExpansion}">
+        <aura:if isTrue="{!v.findtreasuryProductFilter}">
+            <lightning:pillContainer items="{!v.items}" onitemremove="{!c.clearTreasuryProductSelection}">
+            </lightning:pillContainer>
+        </aura:if>
+        <lightning:input name="Product Search" type="search" value="{!v.ProductSearchValue}"
+            placeholder="Search Product" onchange="{!c.ProductSearchValChanged}" />
+        <div style="height: 200px">
+            <lightning:datatable data="{! v.ProductData }" columns="{! v.ProductColumns }" keyField="Id"
+                hideTableHeader="true" onrowselection="{!c.ProductSelectionChange }"
+                selectedRows="{!v.SelectedProducts}" />
+        </div>
+    </aura:if>
+</lightning:card>
+<lightning:card title="Primary Admin" class="heading">
+    <aura:set attribute="actions">
+        <aura:if isTrue="{!v.ProductExpansion}">
+            <lightning:buttonIcon iconName="utility:dash" variant="bare" class="slds-button__icon_large"
+                onclick="{! c.CollapseProduct }" />
+            <aura:set attribute="else">
+                <lightning:buttonIcon iconName="utility:add" variant="bare" class="slds-button__icon_large"
+                    onclick="{! c.ExpandProduct }" />
+            </aura:set>
+        </aura:if>
+    </aura:set>
+    <aura:if isTrue="{!v.ProductExpansion}">
+        <aura:if isTrue="{!v.findtreasuryProductFilter}">
+            <lightning:pillContainer items="{!v.items}" onitemremove="{!c.clearTreasuryProductSelection}">
+            </lightning:pillContainer>
+        </aura:if>
+        <lightning:input name="Product Search" type="search" value="{!v.ProductSearchValue}"
+            placeholder="Search Product" onchange="{!c.ProductSearchValChanged}" />
+        <div style="height: 200px">
+            <lightning:datatable data="{! v.ProductData }" columns="{! v.ProductColumns }" keyField="Id"
+                hideTableHeader="true" onrowselection="{!c.ProductSelectionChange }"
+                selectedRows="{!v.SelectedProducts}" />
+        </div>
+    </aura:if>
+</lightning:card>
+
+
+</aura:component>
